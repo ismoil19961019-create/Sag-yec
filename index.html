@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>SAG YEC</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#F6F6F3;--card:#fff;--ink:#1E2533;--mut:#6B7280;--line:#E3E3DE;--acc:#9E2B3B;--acc2:#27406B;--ok:#2E7D5B}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,"Segoe UI",Roboto,sans-serif;padding-top:env(safe-area-inset-top);padding-bottom:calc(env(safe-area-inset-bottom) + 70px)}
+.kilim{height:10px;background:repeating-linear-gradient(90deg,var(--acc) 0 12px,var(--acc2) 12px 24px,#E8B04A 24px 30px,var(--acc2) 30px 42px)}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px}
+header b{font-size:20px;letter-spacing:.5px}
+main{max-width:720px;margin:0 auto;padding:0 12px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);overflow-x:auto}
+nav button{flex:1;min-width:64px;border:0;background:none;padding:12px 6px;font-size:13px;color:var(--mut);white-space:nowrap}
+nav button.on{color:var(--acc);font-weight:700;box-shadow:inset 0 3px var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+h2{margin:6px 0 4px;font-size:18px}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 3px}
+input,select,textarea{width:100%;font:inherit;padding:11px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;background:var(--acc);color:#fff;font:inherit;font-weight:700}
+.btn.s{width:auto;margin:0;padding:8px 12px;font-size:14px;background:var(--acc2)}
+.btn.g{background:var(--ok)}.btn.d{background:#fff;color:var(--acc);border:1px solid var(--line)}
+.item{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border:0}.item small{color:var(--mut);display:block}
+.num{font-weight:700;white-space:nowrap;text-align:right}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:8px}.big div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.big small{color:var(--mut)}.big b{display:block;font-size:20px;margin-top:2px}
+.err{color:var(--acc);font-size:14px;margin-top:8px}.empty{color:var(--mut);padding:14px 0;text-align:center}
+</style>
+</head>
+<body>
+<div class="kilim"></div>
+<div id="app"></div>
+<script>
+const $=s=>document.querySelector(s), fmt=n=>Math.round(+n||0).toLocaleString('ru-RU').replace(/\u00a0/g,' ');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+let sb=null, tab='home', msg='';
+const cfg=()=>JSON.parse(localStorage.getItem('sagcfg')||'null');
+
+function init(){
+  const c=cfg();
+  if(!c) return setup();
+  sb=supabase.createClient(c.url,c.key);
+  sb.auth.getSession().then(({data})=>data.session?go('home'):login());
+}
+function setup(){
+  $('#app').innerHTML=`<main><div class="card"><h2>Sozlash (bir marta)</h2>
+  <label>Supabase Project URL</label><input id="u" placeholder="https://xxxx.supabase.co">
+  <label>Publishable / anon key</label><input id="k" placeholder="sb_publishable_...">
+  <p class="err">Secret yoki service_role kalitini kiritmang.</p>
+  <button class="btn" onclick="saveCfg()">Saqlash</button></div></main>`;
+}
+function saveCfg(){
+  const url=$('#u').value.trim().replace(/\/$/,''), key=$('#k').value.trim();
+  if(!/^https:\/\/.+\.supabase\.co$/.test(url)||key.length<20||/service_role|sb_secret/.test(key)) return alert('URL yoki kalit noto\'g\'ri.');
+  localStorage.setItem('sagcfg',JSON.stringify({url,key})); init();
+}
+function login(){
+  $('#app').innerHTML=`<main><div class="card"><h2>SAG YEC — kirish</h2>
+  <label>Email</label><input id="em" type="email" autocomplete="username">
+  <label>Parol</label><input id="pw" type="password" autocomplete="current-password">
+  <div class="err" id="le"></div><button class="btn" onclick="doLogin()">Kirish</button>
+  <button class="btn d" onclick="localStorage.removeItem('sagcfg');init()">Sozlamani o'zgartirish</button></div></main>`;
+}
+async function doLogin(){
+  const {error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});
+  if(error) $('#le').textContent='Email yoki parol noto\'g\'ri.'; else go('home');
+}
+const TABS=[['home','Bosh'],['kirim','Kirim'],['sotuv','Sotuv'],['nasiya','Nasiya'],['zavod','Zavod'],['chiqim','Chiqim'],['hisobot','Hisobot']];
+async function go(t){
+  tab=t; msg='';
+  $('#app').innerHTML=`<header><b>SAG YEC</b><button class="btn s d" style="margin:0" onclick="sb.auth.signOut().then(login)">Chiqish</button></header>
+  <main id="v"><div class="empty">Yuklanmoqda…</div></main>
+  <nav>${TABS.map(([k,n])=>`<button class="${k==t?'on':''}" onclick="go('${k}')">${n}</button>`).join('')}</nav>`;
+  try{ await V[t](); }catch(e){ $('#v').innerHTML=`<div class="card err">Xato: ${esc(e.message)}<br>Internetni va setup.sql ishga tushganini tekshiring.</div>`; }
+}
+const q=async p=>{const {data,error}=await p; if(error) throw error; return data;};
+const val=id=>$('#'+id).value.trim();
+const inp=(id,l,t='text',x='')=>`<label>${l}</label><input id="${id}" type="${t}" ${x}>`;
+async function add(table,obj,after){
+  const {error}=await sb.from(table).insert(obj); if(error) return alert('Saqlanmadi: '+error.message);
+  go(after||tab);
+}
+async function del(table,id){ if(confirm("O'chirilsinmi?")){ await q(sb.from(table).delete().eq('id',id)); go(tab);} }
+const list=(a,f)=>a.length?a.map(f).join(''):'<div class="empty">Hozircha yozuv yo\'q</div>';
+
+const V={
+async home(){
+  const m=today().slice(0,7), [s,e,n]=await Promise.all([
+    q(sb.from('sales').select('amount,sale_date').gte('sale_date',m+'-01')),
+    q(sb.from('expenses').select('amount,exp_date').gte('exp_date',m+'-01')),
+    q(sb.from('nasiya').select('amount,paid'))]);
+  const sum=(a,k)=>a.reduce((x,r)=>x+ +r.amount,0), td=s.filter(r=>r.sale_date==today());
+  $('#v').innerHTML=`<div class="big">
+  <div><small>Bugungi savdo</small><b>${fmt(sum(td))}</b></div>
+  <div><small>Oylik savdo</small><b>${fmt(sum(s))}</b></div>
+  <div><small>Oylik chiqim</small><b>${fmt(sum(e))}</b></div>
+  <div><small>Nasiya qoldig'i</small><b>${fmt(n.reduce((x,r)=>x+r.amount-r.paid,0))}</b></div></div>`;
+},
+async kirim(){
+  const d=await q(sb.from('stock').select('*').order('created_at',{ascending:false}));
+  $('#v').innerHTML=`<div class="card"><h2>Kirim</h2>
+  <label>Turi</label><select id="kd"><option value="tayyor">Tayyor gilam</option><option value="rulon">Rulon</option></select>
+  ${inp('kn','Nomi / dizayn')}<div class="row"><div>${inp('ks','O\'lcham (masalan 2x3)')}</div><div>${inp('kq','Soni','number','value=1 inputmode=decimal')}</div></div>
+  ${inp('kl','Saqlash joyi')}<button class="btn" onclick="saveKirim()">Qo'shish</button></div>
+  <div class="card"><h2>Omborda</h2>${list(d,r=>`<div class="item"><div>${esc(r.name)} <small>${r.kind=='rulon'?'Rulon':'Tayyor'} · ${esc(r.size||'')} · ${esc(r.location||'')}</small></div><div class="num">${r.qty} ta<br><a href="#" onclick="del('stock','${r.id}');return false" style="color:var(--acc);font-size:13px">o'chirish</a></div></div>`)}</div>`;
+},
+async sotuv(){
+  const [st,d]=await Promise.all([q(sb.from('stock').select('*').gt('qty',0).order('name')),
+    q(sb.from('sales').select('*').order('created_at',{ascending:false}).limit(50))]);
+  window._st=st;
+  $('#v').innerHTML=`<div class="card"><h2>Yangi sotuv</h2>
+  <label>Ombordan tanlang (ixtiyoriy)</label><select id="sst" onchange="pickStock()"><option value="">— qo'lda kiritaman —</option>${st.map(r=>`<option value="${r.id}">${esc(r.name)} ${esc(r.size||'')} (${r.qty} ta)</option>`).join('')}</select>
+  ${inp('si','Mahsulot')}<div class="row"><div>${inp('ss','O\'lcham')}</div><div>${inp('sq','Soni','number','value=1 inputmode=decimal')}</div></div>
+  ${inp('sa','Summa (so\'m)','number','inputmode=numeric')}${inp('sc','Mijoz (ixtiyoriy)')}${inp('sd','Sana','date','value='+today())}
+  <button class="btn" onclick="saveSotuv()">Sotuvni saqlash</button></div>
+  <div class="card"><h2>So'nggi sotuvlar</h2>${list(d,r=>`<div class="item"><div>${esc(r.item)} <small>${r.sale_date} · ${esc(r.size||'')} · ${r.qty} ta${r.source=='nasiya'?' · nasiyadan':''}${r.customer?' · '+esc(r.customer):''}</small></div><div class="num">${fmt(r.amount)}<br><a href="#" onclick="del('sales','${r.id}');return false" style="color:var(--acc);font-size:13px">o'chirish</a></div></div>`)}</div>`;
+},
+async nasiya(){
+  const d=await q(sb.from('nasiya').select('*').order('created_at',{ascending:false}));
+  $('#v').innerHTML=`<div class="card"><h2>Yangi nasiya</h2>
+  <div class="row"><div>${inp('nf','Ism')}</div><div>${inp('nl','Familiya')}</div></div>
+  <div class="row"><div>${inp('n1','Telefon 1','tel')}</div><div>${inp('n2','Telefon 2','tel')}</div></div>
+  ${inp('nw','Qayerdan')}${inp('ng','Mahsulot')}<div class="row"><div>${inp('ns','O\'lcham')}</div><div>${inp('na','Summa (so\'m)','number','inputmode=numeric')}</div></div>
+  <button class="btn" onclick="saveNasiya()">Nasiyani saqlash</button></div>
+  <div class="card"><h2>Ochiq nasiyalar</h2>${list(d,r=>`<div class="item" style="display:block"><div style="display:flex;justify-content:space-between"><b>${esc(r.first_name)} ${esc(r.last_name||'')}</b><span class="num">${fmt(r.amount-r.paid)} qoldi</span></div>
+  <small>${esc(r.phone1||'')} ${esc(r.phone2||'')} · ${esc(r.from_place||'')}<br>${esc(r.goods||'')} ${esc(r.size||'')} · jami ${fmt(r.amount)}, to'langan ${fmt(r.paid)}</small>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn s" onclick="payNasiya('${r.id}',false)">Qisman to'lov</button><button class="btn s g" onclick="payNasiya('${r.id}',true)">To'liq to'landi</button><button class="btn s d" onclick="del('nasiya','${r.id}')">O'chirish</button></div></div>`)}</div>`;
+},
+async zavod(){
+  const d=await q(sb.from('factory_payments').select('*').order('pay_date',{ascending:false}));
+  const t=c=>d.filter(r=>r.currency==c).reduce((x,r)=>x+ +r.amount,0);
+  $('#v').innerHTML=`<div class="big"><div><small>Jami to'langan (so'm)</small><b>${fmt(t('UZS'))}</b></div><div><small>Jami to'langan ($)</small><b>${fmt(t('USD'))}</b></div></div>
+  <div class="card"><h2>Zavodga to'lov</h2><div class="row"><div>${inp('za','Summa','number','inputmode=decimal')}</div><div><label>Valyuta</label><select id="zc"><option value="UZS">So'm</option><option value="USD">Dollar</option></select></div></div>
+  ${inp('zn','Izoh')}${inp('zd','Sana','date','value='+today())}<button class="btn" onclick="saveZavod()">Saqlash</button></div>
+  <div class="card"><h2>To'lovlar</h2>${list(d,r=>`<div class="item"><div>${r.pay_date}<small>${esc(r.note||'')}</small></div><div class="num">${fmt(r.amount)} ${r.currency=='USD'?'$':'so\'m'}<br><a href="#" onclick="del('factory_payments','${r.id}');return false" style="color:var(--acc);font-size:13px">o'chirish</a></div></div>`)}</div>`;
+},
+async chiqim(){
+  const d=await q(sb.from('expenses').select('*').order('exp_date',{ascending:false}).limit(60));
+  $('#v').innerHTML=`<div class="card"><h2>Yangi chiqim</h2>${inp('ea','Summa (so\'m)','number','inputmode=numeric')}${inp('en','Nima uchun')}${inp('ed','Sana','date','value='+today())}
+  <button class="btn" onclick="saveChiqim()">Saqlash</button></div>
+  <div class="card"><h2>Chiqimlar</h2>${list(d,r=>`<div class="item"><div>${esc(r.note||'—')}<small>${r.exp_date}</small></div><div class="num">${fmt(r.amount)}<br><a href="#" onclick="del('expenses','${r.id}');return false" style="color:var(--acc);font-size:13px">o'chirish</a></div></div>`)}</div>`;
+},
+async hisobot(m){
+  m=m||today().slice(0,7);
+  const a=m+'-01', [y,mo]=m.split('-').map(Number), b=new Date(y,mo,1).toISOString().slice(0,10).replace(/^(\d{4}-\d\d).*/,'$1-01');
+  const nx=`${mo==12?y+1:y}-${String(mo==12?1:mo+1).padStart(2,'0')}-01`;
+  const [s,e,f]=await Promise.all([q(sb.from('sales').select('amount').gte('sale_date',a).lt('sale_date',nx)),
+    q(sb.from('expenses').select('amount').gte('exp_date',a).lt('exp_date',nx)),
+    q(sb.from('factory_payments').select('amount,currency').gte('pay_date',a).lt('pay_date',nx))]);
+  const S=s.reduce((x,r)=>x+ +r.amount,0), E=e.reduce((x,r)=>x+ +r.amount,0), fz=c=>f.filter(r=>r.currency==c).reduce((x,r)=>x+ +r.amount,0);
+  $('#v').innerHTML=`<div class="card"><h2>Oy hisoboti</h2><input id="hm" type="month" value="${m}" onchange="V.hisobot(this.value)"></div>
+  <div class="big"><div><small>Kassa (savdo)</small><b>${fmt(S)}</b></div><div><small>Chiqim</small><b>${fmt(E)}</b></div>
+  <div><small>Foyda (savdo − chiqim)</small><b style="color:${S-E>=0?'var(--ok)':'var(--acc)'}">${fmt(S-E)}</b></div>
+  <div><small>Zavodga to'langan</small><b>${fmt(fz('UZS'))} so'm<br>${fmt(fz('USD'))} $</b></div></div>`;
+}};
+
+function pickStock(){
+  const r=(window._st||[]).find(x=>x.id==$('#sst').value); if(!r) return;
+  $('#si').value=r.name; $('#ss').value=r.size||'';
+}
+async function saveKirim(){
+  if(!val('kn')) return alert('Nomini kiriting');
+  add('stock',{kind:$('#kd').value,name:val('kn'),size:val('ks'),qty:+val('kq')||1,location:val('kl')});
+}
+async function saveSotuv(){
+  if(!val('si')||!(+val('sa')>0)) return alert('Mahsulot va summani kiriting');
+  const qty=+val('sq')||1, sid=$('#sst').value;
+  const {error}=await sb.from('sales').insert({item:val('si'),size:val('ss'),qty,amount:+val('sa'),customer:val('sc'),sale_date:val('sd')||today(),source:'sotuv'});
+  if(error) return alert('Saqlanmadi: '+error.message);
+  if(sid){const r=window._st.find(x=>x.id==sid); await sb.from('stock').update({qty:Math.max(0,r.qty-qty)}).eq('id',sid);}
+  go('sotuv');
+}
+function saveNasiya(){
+  if(!val('nf')||!(+val('na')>0)) return alert('Ism va summani kiriting');
+  add('nasiya',{first_name:val('nf'),last_name:val('nl'),phone1:val('n1'),phone2:val('n2'),from_place:val('nw'),goods:val('ng'),size:val('ns'),amount:+val('na')});
+}
+async function payNasiya(id,full){
+  const r=await q(sb.from('nasiya').select('*').eq('id',id).single()), left=r.amount-r.paid;
+  let p=left; if(!full){ p=+prompt("Qancha to'landi? (so'm)",''); if(!(p>0)) return; }
+  if(p>=left){
+    const {error}=await sb.from('sales').insert({item:r.goods||'Nasiya',size:r.size,qty:1,amount:r.amount,customer:(r.first_name+' '+(r.last_name||'')).trim(),source:'nasiya',sale_date:today()});
+    if(error) return alert('Saqlanmadi: '+error.message);
+    await sb.from('nasiya').delete().eq('id',id); alert('Nasiya to\'liq to\'landi va Sotuvga o\'tdi.');
+  } else await sb.from('nasiya').update({paid:+r.paid+p}).eq('id',id);
+  go('nasiya');
+}
+function saveZavod(){ if(!(+val('za')>0)) return alert('Summani kiriting'); add('factory_payments',{amount:+val('za'),currency:$('#zc').value,note:val('zn'),pay_date:val('zd')||today()}); }
+function saveChiqim(){ if(!(+val('ea')>0)) return alert('Summani kiriting'); add('expenses',{amount:+val('ea'),note:val('en'),exp_date:val('ed')||today()}); }
+init();
+</script>
+</body>
+</html>
