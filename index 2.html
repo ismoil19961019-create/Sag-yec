@@ -1,0 +1,373 @@
+<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SAG YEC MANAGER 2.0</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#f5f6f8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#15171a}.app{max-width:900px;margin:auto;padding:18px 16px 90px}h1{margin:4px 0 18px}.stats,.menu{display:grid;gap:10px}.stats{grid-template-columns:repeat(5,1fr)}.menu{grid-template-columns:repeat(3,1fr)}.card,.btn,.row{background:#fff;border:1px solid #e4e6e9;border-radius:18px;padding:15px}.btn{min-height:95px;font-size:16px;font-weight:700}.stat b{display:block;font-size:18px;margin-top:6px}.muted{color:#777;font-size:12px}.screen{display:none}.active{display:block}.bar{display:flex;gap:8px;align-items:center;margin-bottom:14px}.bar h2{flex:1}.primary,.secondary{border:0;border-radius:13px;padding:12px 15px;font-weight:700}.primary{background:#111;color:#fff}.secondary{background:#fff;border:1px solid #ddd}.list{display:grid;gap:9px}.row{display:flex;justify-content:space-between;align-items:center;gap:10px}input,select{width:100%;padding:13px;border:1px solid #ddd;border-radius:12px;font-size:16px;background:#fff}.field{margin:10px 0}.field label{font-size:12px;color:#666;display:block;margin-bottom:5px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.modal{display:none;position:fixed;inset:0;background:#0008;align-items:flex-end;justify-content:center}.modal.on{display:flex}.sheet{width:min(650px,100%);max-height:92vh;overflow:auto;background:#f8f8fa;padding:18px;border-radius:24px 24px 0 0}.head{display:flex;align-items:center}.head h3{flex:1}.notice{background:#eceef1;padding:11px;border-radius:12px;font-size:13px}@media(max-width:650px){.stats{grid-template-columns:1fr 1fr}.menu{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.stats .card:last-child{grid-column:1/-1}}</style></head>
+<body><div class="app">
+<section id="home" class="screen active"><div class="muted">Do‘kon boshqaruvi · 2.0 TEST</div><h1>SAG YEC MANAGER</h1><div class="stats">
+<div class="card stat"><span class="muted">Bugungi sotuv</span><b id="hs">0</b></div><div class="card stat"><span class="muted">Naqd</span><b id="hc">0</b></div><div class="card stat"><span class="muted">Nasiya</span><b id="hn">0</b></div><div class="card stat"><span class="muted">Nasiya qaytimi</span><b id="hp">0</b></div><div class="card stat"><span class="muted">Chiqim</span><b id="he">0</b></div></div>
+<div class="card" style="margin-top:12px">
+<div style="font-weight:800;font-size:17px;margin-bottom:10px">📊 Umumiy holat</div>
+<div class="grid">
+ <div><span class="muted">Jami kirgan mol</span><b id="hiSqm" style="display:block;font-size:19px">0 m²</b></div>
+ <div><span class="muted">Jami kirgan dona/rulon</span><b id="hiQty" style="display:block;font-size:19px">0</b></div>
+ <div><span class="muted">Hozir omborda</span><b id="hStockSqm" style="display:block;font-size:19px">0 m²</b></div>
+ <div><span class="muted">Ombordagi dona/rulon</span><b id="hStockQty" style="display:block;font-size:19px">0</b></div>
+ <div><span class="muted">Zavoddan olingan mol qiymati</span><b id="hFactoryGoods" style="display:block;font-size:19px">$0</b></div>
+ <div><span class="muted">Zavodga berilgan</span><b id="hFactoryPaid" style="display:block;font-size:19px">$0 + 0 so‘m</b></div>
+ <div style="grid-column:1/-1"><span class="muted">Zavoddan qolgan qarz (USD bo‘yicha)</span><b id="hFactoryDebt" style="display:block;font-size:22px">$0</b></div>
+</div>
+<div class="muted" style="margin-top:10px">So‘mda berilgan zavod to‘lovi USD qarzdan avtomatik ayrilmaydi. Kurs kiritilmagani uchun USD va so‘m alohida ko‘rsatiladi.</div>
+</div><div class="menu" style="margin-top:12px"><button class="btn" onclick="go('stock')">📦<br>Ombor / Kirim</button><button class="btn" onclick="go('sales')">💰<br>Sotuv</button><button class="btn" onclick="go('credit')">👥<br>Nasiya</button><button class="btn" onclick="go('factory')">🏭<br>Zavod to‘lovlari</button><button class="btn" onclick="go('expense')">💸<br>Chiqim</button><button class="btn" onclick="go('report')">📊<br>Hisobot</button></div><button class="secondary" style="width:100%;margin-top:10px" onclick="go('audit')">🕘 Harakatlar tarixi</button></section>
+<section id="stock" class="screen"><div class="bar"><button class="secondary" onclick="go('home')">←</button><h2>Ombor</h2><button class="primary" onclick="stockForm()">+ Kirim</button></div><div class="notice">Gilam nomi bitta qatorda. Ichida Eski/Yangi → Rulon/Tayyor → razmerlar.</div><div id="stockList" class="list" style="margin-top:10px"></div></section>
+<section id="sales" class="screen"><div class="bar"><button class="secondary" onclick="go('home')">←</button><h2>Sotuv</h2><button class="primary" onclick="saleForm()">+ Sotuv</button></div><div id="salesList" class="list"></div></section>
+<section id="credit" class="screen"><div class="bar"><button class="secondary" onclick="go('home')">←</button><h2>Nasiya</h2></div><input id="search" placeholder="Ism yoki telefon" oninput="customers()"><div id="customers" class="list" style="margin-top:10px"></div></section>
+<section id="factory" class="screen"><div class="bar"><button class="secondary" onclick="go('home')">←</button><h2>Zavod to‘lovlari</h2><button class="primary" onclick="factoryForm()">+ To‘lov</button></div><div id="factoryTotal" class="card"></div><div id="factoryList" class="list" style="margin-top:10px"></div></section>
+<section id="expense" class="screen"><div class="bar"><button class="secondary" onclick="go('home')">←</button><h2>Chiqim</h2><button class="primary" onclick="expenseForm()">+ Chiqim</button></div><div id="expenseList" class="list"></div></section>
+<section id="report" class="screen"><div class="bar"><button class="secondary" onclick="go('home')">←</button><h2>Hisobot</h2></div>
+<div class="card" style="margin-bottom:12px">
+ <div class="muted" style="margin-bottom:8px">Hisobot davri</div>
+ <div style="display:flex;gap:7px;flex-wrap:wrap">
+  <button id="rfToday" class="secondary" onclick="setReportPeriod('today')">Bugun</button>
+  <button id="rfYesterday" class="secondary" onclick="setReportPeriod('yesterday')">Kecha</button>
+  <button id="rfWeek" class="secondary" onclick="setReportPeriod('week')">Hafta</button>
+  <button id="rfMonth" class="primary" onclick="setReportPeriod('month')">Oy</button>
+  <button id="rfAll" class="secondary" onclick="setReportPeriod('all')">Umumiy</button>
+ </div>
+ <div class="grid" style="margin-top:10px">
+  <div class="field"><label>Boshlanish</label><input id="rfFrom" type="date" onchange="setReportCustom()"></div>
+  <div class="field"><label>Tugash</label><input id="rfTo" type="date" onchange="setReportCustom()"></div>
+ </div>
+ <div id="reportPeriodLabel" class="muted"></div>
+</div>
+<div id="reportList" class="list"></div></section>
+<section id="audit" class="screen"><div class="bar"><button class="secondary" onclick="go('home')">←</button><h2>Tarix</h2></div><div id="auditList" class="list"></div></section></div>
+<div id="modal" class="modal"><div class="sheet"><div class="head"><h3 id="mt"></h3><button class="secondary" onclick="closeM()">✕</button></div><div id="mb"></div></div></div>
+
+<div id="cloudBar" style="position:fixed;right:10px;top:10px;z-index:80;background:#fff;border:1px solid #ddd;border-radius:999px;padding:7px 10px;font:12px system-ui;box-shadow:0 3px 12px #0002">☁️ Ulanmoqda...</div>
+<div id="loginOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:#f5f5f7;padding:22px;align-items:center;justify-content:center">
+ <div style="background:white;border-radius:24px;padding:22px;max-width:420px;width:100%;box-shadow:0 12px 40px #0002">
+  <h2 style="margin-top:0">SAG YEC MANAGER</h2>
+  <p style="color:#666">iPhone va iPad bir xil bazadan ishlashi uchun kiring.</p>
+  <div class="field"><label>Email</label><input id="loginEmail" type="email" autocomplete="username"></div>
+  <div class="field"><label>Parol</label><input id="loginPassword" type="password" autocomplete="current-password"></div>
+  <button class="primary" style="width:100%;font-size:17px" onclick="cloudLogin()">Kirish</button>
+  <div id="loginMsg" class="muted" style="margin-top:10px"></div>
+ </div>
+</div>
+<script>
+const K='sag_yec_2_demo';
+const SUPABASE_URL='https://nxfgjvillcqueycjyqms.supabase.co';
+const SUPABASE_KEY='sb_publishable_QVVPpkzLO_AhjD86STzjjw_3-jZw4Hd';
+const SESSION_KEY='sag_yec_supabase_session';
+let d=JSON.parse(localStorage.getItem(K)||'null')||{stock:[],sales:[],customers:[],factory:[],expenses:[],audit:[]};
+let cloudVersion=0, cloudBusy=false, lastCloudJson='', cloudReady=false;
+
+function cloudStatus(t,ok=true){let e=document.getElementById('cloudBar');if(e){e.textContent=t;e.style.background=ok?'#fff':'#fff3f3'}}
+function getSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null')}catch{return null}}
+function setSession(x){localStorage.setItem(SESSION_KEY,JSON.stringify(x))}
+async function api(path,opt={}){
+ let ss=getSession(),headers={'apikey':SUPABASE_KEY,'Content-Type':'application/json',...(opt.headers||{})};
+ if(ss?.access_token)headers.Authorization='Bearer '+ss.access_token;
+ let r=await fetch(SUPABASE_URL+path,{...opt,headers});
+ if(r.status===401&&ss?.refresh_token){
+   let rr=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ss.refresh_token})});
+   if(rr.ok){let ns=await rr.json();setSession(ns);headers.Authorization='Bearer '+ns.access_token;r=await fetch(SUPABASE_URL+path,{...opt,headers})}
+ }
+ if(!r.ok)throw new Error(await r.text());
+ let txt=await r.text();return txt?JSON.parse(txt):null
+}
+async function cloudLogin(){
+ loginMsg.textContent='Tekshirilmoqda...';
+ try{
+  let r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:loginEmail.value.trim(),password:loginPassword.value})});
+  if(!r.ok)throw new Error('Email yoki parol noto‘g‘ri');
+  let ss=await r.json();setSession(ss);loginOverlay.style.display='none';await cloudInit()
+ }catch(e){loginMsg.textContent='❌ '+e.message}
+}
+async function cloudFetch(){
+ let rows=await api('/rest/v1/app_state?id=eq.main&select=data,version,updated_at');
+ if(rows&&rows[0]){
+   cloudVersion=+rows[0].version||0;
+   let remote=rows[0].data||{};
+   let js=JSON.stringify(remote);
+   if(js!==lastCloudJson){d=remote;localStorage.setItem(K,js);lastCloudJson=js;render()}
+   cloudStatus('☁️ Sinxron · v'+cloudVersion,true);
+   return true
+ }
+ return false
+}
+async function cloudPush(){
+ if(!cloudReady||cloudBusy)return;
+ cloudBusy=true;cloudStatus('☁️ Saqlanmoqda...',true);
+ try{
+   let payload=JSON.parse(JSON.stringify(d));
+   let res=await api('/rest/v1/rpc/save_app_state',{method:'POST',body:JSON.stringify({expected_version:cloudVersion,new_data:payload})});
+   if(res&&res.ok){cloudVersion=+res.version;lastCloudJson=JSON.stringify(payload);cloudStatus('☁️ Saqlandi · v'+cloudVersion,true)}
+   else{
+     await cloudFetch();
+     cloudStatus('⚠️ Boshqa qurilmada o‘zgarish bo‘ldi',false);
+     alert("Boshqa qurilmada ma’lumot o‘zgargan. Eng yangi ma’lumot yuklandi. Amalni qayta tekshirib kiriting.")
+   }
+ }catch(e){cloudStatus('⚠️ Internet/Supabase xatosi',false);console.error(e)}
+ finally{cloudBusy=false}
+}
+async function cloudInit(){
+ if(!getSession()){loginOverlay.style.display='flex';cloudStatus('🔒 Kirish kerak',false);return}
+ try{
+   let exists=await cloudFetch();
+   if(!exists){
+     let local=JSON.parse(localStorage.getItem(K)||'null')||d;
+     await api('/rest/v1/app_state',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify({id:'main',data:local,version:1})});
+     await cloudFetch()
+   }
+   cloudReady=true;lastCloudJson=JSON.stringify(d);
+   setInterval(async()=>{if(!cloudBusy)try{await cloudFetch()}catch(e){cloudStatus('⚠️ Aloqa yo‘q',false)}},5000)
+ }catch(e){
+   console.error(e);
+   if(String(e).includes('JWT')||String(e).includes('401')){localStorage.removeItem(SESSION_KEY);loginOverlay.style.display='flex'}
+   cloudStatus('⚠️ Ulanish xatosi',false)
+ }
+}
+
+const som=n=>(+n||0).toLocaleString('uz-UZ')+" so‘m",usd=n=>"$"+(+n||0).toLocaleString('en-US',{maximumFractionDigits:2}),day=()=>new Date().toISOString().slice(0,10),stamp=()=>new Date().toLocaleString('uz-UZ');
+function save(){localStorage.setItem(K,JSON.stringify(d));render();cloudPush()} function log(x){d.audit.unshift({t:stamp(),x})}
+function go(x){document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));document.getElementById(x).classList.add('active');render();scrollTo(0,0)}
+function M(t,b){document.getElementById('mt').textContent=t;document.getElementById('mb').innerHTML=b;document.getElementById('modal').classList.add('on')} function closeM(){document.getElementById('modal').classList.remove('on')}
+function stockForm(){
+ M('Yangi kirim',`
+ <div class="notice"><b>1. Gilam turini tanlang</b></div>
+ <div class="grid" style="margin:10px 0">
+   <button id="rollBtn" class="primary" style="min-height:70px;font-size:17px" onclick="chooseKind('Rulon')">🧻 RULON</button>
+   <button id="readyBtn" class="secondary" style="min-height:70px;font-size:17px" onclick="chooseKind('Tayyor')">▣ TAYYOR GILAM</button>
+ </div>
+ <input type="hidden" id="pk" value="Rulon">
+
+ <div class="field"><label>2. Gilam nomi</label>
+   <select id="pnSelect" onchange="toggleNewProduct()"></select>
+ </div>
+ <div class="field" id="newProductBox" style="display:none">
+   <label>Yangi gilam nomi</label>
+   <input id="pnNew" placeholder="Masalan: MIMOZA, LUX, SAFIR">
+ </div>
+
+ <div class="field"><label>Narx guruhi</label>
+   <select id="pa"><option>Yangi</option><option>Eski</option></select>
+ </div>
+
+ <div class="notice"><b>3. Gilam razmeri</b></div>
+ <div class="grid">
+   <div class="field"><label>Eni (m)</label>
+     <input id="pw" type="number" inputmode="decimal" step="0.01" placeholder="3.5" oninput="calcIncoming()">
+   </div>
+   <div class="field"><label id="lengthLabel">Rulon uzunligi (m)</label>
+     <input id="pl" type="number" inputmode="decimal" step="0.01" placeholder="30" oninput="calcIncoming()">
+   </div>
+ </div>
+ <div class="field"><label id="qtyLabel">Rulon soni</label>
+   <input id="pq" type="number" inputmode="numeric" min="1" step="1" value="1" oninput="calcIncoming()">
+ </div>
+
+ <div class="card" style="margin:10px 0">
+   <div class="muted">Avtomatik hisob</div>
+   <div style="font-size:22px;font-weight:800;margin-top:5px" id="sqmPreview">0 m²</div>
+   <div class="muted" id="formulaPreview">Eni × uzunligi × rulon soni</div>
+ </div>
+
+ <div class="field"><label>1 m² kirim narxi ($)</label>
+   <input id="pc" type="number" inputmode="decimal" step="0.01" placeholder="3.80" oninput="calcIncoming()">
+ </div>
+ <div class="card" style="margin:10px 0">
+   <div class="muted">Jami kirim qiymati</div>
+   <div style="font-size:22px;font-weight:800;margin-top:5px" id="costPreview">$0</div>
+ </div>
+ <button class="primary" style="width:100%;font-size:17px" onclick="addStock()">Saqlash</button>`);
+ fillProductNames(); chooseKind('Rulon'); calcIncoming()
+}
+function fillProductNames(){
+ let names=[...new Set(d.stock.map(x=>x.n))].sort();
+ pnSelect.innerHTML=names.map(n=>`<option value="${n}">${n}</option>`).join('')+
+ `<option value="__NEW__">＋ Yangi gilam nomi qo‘shish</option>`;
+ if(!names.length) pnSelect.value="__NEW__";
+ toggleNewProduct()
+}
+function toggleNewProduct(){newProductBox.style.display=pnSelect.value==="__NEW__"?"block":"none"}
+function chooseKind(k){
+ pk.value=k;
+ rollBtn.className=k==='Rulon'?'primary':'secondary';
+ readyBtn.className=k==='Tayyor'?'primary':'secondary';
+ lengthLabel.textContent=k==='Rulon'?'Rulon uzunligi (m)':'Bo‘yi (m)';
+ qtyLabel.textContent=k==='Rulon'?'Rulon soni':'Dona';
+ calcIncoming()
+}
+function calcIncoming(){
+ let w=+pw.value||0,l=+pl.value||0,q=+pq.value||0,c=+pc.value||0,m=w*l*q;
+ sqmPreview.textContent=m.toLocaleString('uz-UZ',{maximumFractionDigits:2})+' m²';
+ formulaPreview.textContent=(w||0)+' × '+(l||0)+' × '+(q||0)+' = '+m.toLocaleString('uz-UZ',{maximumFractionDigits:2})+' m²';
+ costPreview.textContent='$'+(m*c).toLocaleString('en-US',{maximumFractionDigits:2})
+}
+function addStock(){let n=(pnSelect.value==="__NEW__"?pnNew.value:pnSelect.value).trim().toUpperCase(),a=pa.value,k=pk.value,w=+pw.value,l=+pl.value,q=+pq.value,c=+pc.value;if(!n||!w||!l||!q)return alert('Ma’lumot yetarli emas');if(k==='Rulon'&&l<10)return alert("⚠️ Rulon uzunligi kamida 10 metr bo‘lishi kerak. Tayyor gilamni tanlamadingizmi?");if(k==='Tayyor'&&l>9)return alert("⚠️ Tayyor gilam bo‘yi eng ko‘pi bilan 9 metr bo‘lishi mumkin. Balki Rulonni tanlamoqchi bo‘lgandirsiz?");let sqm=w*l*q,x=d.stock.find(z=>z.n===n&&z.a===a&&z.k===k&&z.w===w&&z.l===l&&z.c===c);if(x){if(x.inSqm==null)x.inSqm=x.sqm;if(x.inQty==null)x.inQty=x.q;x.q+=q;x.sqm+=sqm;x.inSqm+=sqm;x.inQty+=q;if(k==='Rulon')for(let i=0;i<q;i++)x.rolls.push(l)}else d.stock.push({id:Date.now(),n,a,k,w,l,q,c,sqm,inSqm:sqm,inQty:q,rolls:k==='Rulon'?Array(q).fill(l):[]});log(`${n} kirim ${sqm.toFixed(2)} m²`);save();closeM()}
+function groups(){let g={};d.stock.forEach(x=>{g[x.n]??={sqm:0,a:[]};g[x.n].sqm+=x.sqm;g[x.n].a.push(x)});return g}
+function stockRender(){let g=groups();stockList.innerHTML=Object.keys(g).length?Object.entries(g).map(([n,v])=>`<div class="row" onclick="detail('${n}')"><span><b>${n}</b><div class="muted">${v.a.length} variant</div></span><b>${v.sqm.toFixed(2)} m² →</b></div>`).join(''):`<div class="card muted">Hali kirim yo‘q</div>`}
+function detail(n){M(n,d.stock.filter(x=>x.n===n).map(x=>`<div class="row"><span><b>${x.a} · ${x.k}</b><div>${x.w}×${x.l} · ${x.k==='Tayyor'?x.q+' dona':x.rolls.map(r=>r.toFixed(1)+'m').join(', ')}</div><div class="muted">${usd(x.c)}/m²</div></span><span><b>${x.sqm.toFixed(2)} m²</b><br><button class="secondary" onclick="editStock(${x.id})">✏️ Tahrirlash</button> <button class="secondary" onclick="deleteStock(${x.id})">🗑 O‘chirish</button></span></div>`).join(''))}
+function deleteStock(id){let x=d.stock.find(z=>z.id===id);if(!x)return;let used=d.sales.some(v=>v.stock===id&&v.status==='active');if(used)return alert("Bu kirimdan faol sotuv bor. Avval o‘sha sotuvni bekor qiling.");M("Kirimni o‘chirish",`<div class="notice"><b>${x.n} · ${x.a} · ${x.k} · ${x.w}×${x.l}</b><br><br>Bu kirimni butunlay o‘chirasizmi?</div><div class="grid"><button class="secondary" onclick="closeM()">Yo‘q</button><button class="primary" onclick="confirmDeleteStock(${id})">Ha, o‘chirish</button></div>`)}
+function confirmDeleteStock(id){let x=d.stock.find(z=>z.id===id);if(!x)return;log(`${x.n} kirim o‘chirildi`);d.stock=d.stock.filter(z=>z.id!==id);save();closeM()}
+function editStock(id){let x=d.stock.find(z=>z.id===id);if(!x)return;M('Kirimni tahrirlash',`<div class="field"><label>Gilam nomi</label><input id="xin" value="${x.n}"></div><div class="field"><label>Eski / Yangi</label><select id="xia"><option ${x.a==='Yangi'?'selected':''}>Yangi</option><option ${x.a==='Eski'?'selected':''}>Eski</option></select></div><div class="grid"><div class="field"><label>Eni</label><input id="xiw" type="number" inputmode="decimal" step=".01" value="${x.w}"></div><div class="field"><label>${x.k==='Rulon'?'Uzunligi':'Bo‘yi'}</label><input id="xil" type="number" inputmode="decimal" step=".01" value="${x.l}"></div></div><div class="field"><label>${x.k==='Rulon'?'Rulon soni':'Dona'}</label><input id="xiq" type="number" inputmode="numeric" value="${x.q}"></div><div class="field"><label>1 m² kirim narxi ($)</label><input id="xic" type="number" inputmode="decimal" step=".01" value="${x.c}"></div><button class="primary" style="width:100%" onclick="saveStockEdit(${id})">Saqlash</button>`)}
+function saveStockEdit(id){let x=d.stock.find(z=>z.id===id);if(!x)return;let ow=x.w,ol=x.l,oq=x.q;x.n=xin.value.trim().toUpperCase();x.a=xia.value;x.w=+xiw.value;x.l=+xil.value;x.q=+xiq.value;x.c=+xic.value;if(!x.n||!x.w||!x.l||!x.q)return alert('Ma’lumot yetarli emas');x.sqm=x.w*x.l*x.q;if(x.k==='Rulon'){if((x.rolls||[]).length===oq&&x.rolls.every(r=>Math.abs(r-ol)<.001))x.rolls=Array(x.q).fill(x.l);else if(x.w!==ow||x.l!==ol||x.q!==oq)return alert('Bu rulondan sotuv qilingan. Razmer/sonini o‘zgartirish uchun avval tegishli sotuvni bekor qiling.')}log(`${x.n} kirim ma’lumoti tahrirlandi`);save();closeM()}
+function saleForm(){let ns=Object.keys(groups());if(!ns.length)return alert('Avval kirim qiling');M('Yangi sotuv',`<div class="field"><label>Gilam</label><select id="sn" onchange="saleOpts()">${ns.map(n=>`<option>${n}</option>`)}</select></div><div id="so"></div><div class="grid"><div class="field"><label>Sotilgan bo‘yi/uzunligi</label><input id="sl" type="number" step=".01"></div><div class="field"><label>Dona (tayyor uchun)</label><input id="sq" type="number" value="1"></div></div><div class="field"><label>Qanchaga sotildi — jami so‘m</label><input id="st" type="number"></div><div class="field"><label>To‘lov</label><select id="spt" onchange="creditFields()"><option>Naqd</option><option>Nasiya</option></select></div><div id="cf"></div><button class="primary" style="width:100%" onclick="addSale()">Sotuvni saqlash</button>`);saleOpts()}
+function saleOpts(){let a=d.stock.filter(x=>x.n===sn.value&&x.sqm>0);so.innerHTML=`<div class="field"><label>Eski/Yangi · Rulon/Tayyor · Razmer</label><select id="si">${a.map(x=>`<option value="${x.id}">${x.a} · ${x.k} · ${x.w}×${x.l} · ${x.sqm.toFixed(2)}m²</option>`)}</select></div>`}
+function creditFields(){cf.innerHTML=spt.value==='Nasiya'?`<div class="notice">Telefon mavjud bo‘lsa eski mijoz kartasi ishlatiladi.</div><div class="field"><label>Telefon 1</label><input id="cp"></div><div class="grid"><div class="field"><label>Ism</label><input id="cn"></div><div class="field"><label>Familiya</label><input id="cs"></div></div><div class="field"><label>Qayerdan</label><input id="cpl"></div><div class="field"><label>Telefon 2</label><input id="cp2"></div><div class="grid"><div class="field"><label>Hozir bergan puli</label><input id="cpaid" type="number" value="0"></div><div class="field"><label>Zalog / izoh</label><input id="cz"></div></div>`:''}
+function addSale(){let x=d.stock.find(z=>z.id==si.value),l=+sl.value,q=+sq.value,t=+st.value;if(!x||!t)return alert('Ma’lumot yetarli emas');let m=x.k==='Rulon'?x.w*l:x.w*x.l*q;let beforeStock={q:x.q,sqm:x.sqm,rolls:[...(x.rolls||[])]};if(m>x.sqm)return alert('Qoldiq yetmaydi');if(x.k==='Tayyor'&&q>x.q)return alert('Dona yetmaydi');if(x.k==='Rulon'){let i=x.rolls.findIndex(r=>r>=l);if(i<0)return alert('Bu uzunlikka yetadigan rulon yo‘q');x.rolls[i]-=l;if(x.rolls[i]<.001)x.rolls.splice(i,1);x.q=x.rolls.length}else x.q-=q;x.sqm-=m;let s={id:Date.now(),date:day(),n:x.n,stock:x.id,a:x.a,k:x.k,size:x.k==='Rulon'?`${x.w}×${l}`:`${x.w}×${x.l}`,q:x.k==='Rulon'?1:q,sqm:m,total:t,type:spt.value,status:'active',beforeStock};if(spt.value==='Nasiya'){let p=cp.value.trim(),c=d.customers.find(z=>z.phone===p||z.phone2===p);if(!c){if(!p||!cn.value.trim())return alert('Mijoz ismi va telefoni kerak');c={id:Date.now()+1,name:cn.value.trim(),surname:cs.value.trim(),place:cpl.value.trim(),phone:p,phone2:cp2.value.trim(),sales:[],payments:[]};d.customers.push(c)}s.cid=c.id;c.sales.push(s.id);let paid=+cpaid.value||0;if(paid){let pid=Date.now()+2;c.payments.push({id:pid,date:day(),amount:paid,note:'Sotuv paytidagi to‘lov'});s.initialPaymentId=pid}}d.sales.unshift(s);log(`${s.n} sotuv ${som(t)} ${s.type}`);save();closeM()}
+function salesRender(){
+ let box=document.getElementById('salesList');
+ let visibleSales=d.sales.filter(s=>s.status==='active');
+ box.innerHTML=visibleSales.length?visibleSales.map(s=>`<div class="row"><span><b>${s.n}</b><div>${s.a} · ${s.k} · ${s.size}</div><div class="muted">${s.date} · ${s.type}${s.status==='cancelled'?' · ❌ BEKOR QILINGAN':''}</div></span><span><b>${som(s.total)}</b>${s.status==='active'?`<br><button type="button" class="secondary sale-edit" data-id="${s.id}">✏️ O‘zgartirish</button> <button type="button" class="secondary sale-cancel" data-id="${s.id}" style="color:#c62828">❌ Bekor qilish</button>`:''}</span></div>`).join(''):`<div class="card muted">Sotuv yo‘q</div>`;
+ box.querySelectorAll('.sale-edit').forEach(btn=>btn.addEventListener('click',()=>editSale(Number(btn.dataset.id))));
+ box.querySelectorAll('.sale-cancel').forEach(btn=>btn.addEventListener('click',()=>cancelSale(Number(btn.dataset.id))));
+}
+function deleteSale(id){let s=d.sales.find(x=>x.id===id);if(!s)return;if(s.status==='active')return alert("Avval sotuvni Bekor qiling. Shunda ombor va nasiya to‘g‘ri qaytadi.");M("Sotuvni o‘chirish",`<div class="notice"><b>${s.n} · ${s.size}</b><br><br>Bekor qilingan sotuvni tarixdan butunlay o‘chirasizmi?</div><div class="grid"><button class="secondary" onclick="closeM()">Yo‘q</button><button class="primary" onclick="confirmDeleteSale(${id})">Ha, o‘chirish</button></div>`)}
+function confirmDeleteSale(id){let s=d.sales.find(x=>x.id===id);if(!s||s.status!=='cancelled')return;log(`${s.n} bekor qilingan sotuv tarixdan o‘chirildi`);d.sales=d.sales.filter(x=>x.id!==id);save();closeM()}
+function editSale(id){let s=d.sales.find(x=>x.id===id);if(!s||s.status!=='active')return;M('Sotuvni tuzatish',`<div class="notice">Summada xato bo‘lsa tuzating. Razmer yoki gilam turi xato bo‘lsa, Bekor qilib qayta soting — ombor to‘liq qaytadi.</div><div class="field"><label>Gilam</label><input value="${s.n} · ${s.a} · ${s.k} · ${s.size}" disabled></div><div class="field"><label>Jami sotuv summasi</label><input id="editTotal" type="number" inputmode="numeric" value="${s.total}"></div><button class="primary" style="width:100%" onclick="saveSaleEdit(${id})">Tuzatishni saqlash</button>`)}
+function saveSaleEdit(id){let s=d.sales.find(x=>x.id===id),v=+editTotal.value;if(!s||!v)return alert('Summani kiriting');let old=s.total;s.total=v;s.editedAt=stamp();log(`${s.n} sotuv tuzatildi: ${som(old)} → ${som(v)}`);save();closeM()}
+function cancelSale(id){
+ let s=d.sales.find(x=>x.id===id);
+ if(!s||s.status!=='active')return alert("Bu sotuv allaqachon bekor qilingan.");
+ M("Sotuvni bekor qilish",`
+   <div class="notice"><b>${s.n} · ${s.size}</b><br>${som(s.total)}<br><br>
+   Bekor qilinganda ombor qoldig‘i, rulonning kesilgan uzunligi va nasiya hisobi sotuvdan oldingi holatga qaytariladi.</div>
+   <div class="grid">
+     <button class="secondary" onclick="closeM()">Yo‘q, qaytish</button>
+     <button id="confirmCancelBtn" type="button" class="primary">Ha, bekor qilish</button>
+   </div>`);
+ let b=document.getElementById('confirmCancelBtn');
+ if(b)b.addEventListener('click',()=>confirmCancelSale(id));
+}
+function confirmCancelSale(id){
+ let s=d.sales.find(x=>x.id===id);
+ if(!s||s.status!=='active')return;
+ let x=d.stock.find(z=>z.id===s.stock);
+
+ if(x){
+   if(s.beforeStock){
+     x.q=Number(s.beforeStock.q)||0;
+     x.sqm=Number(s.beforeStock.sqm)||0;
+     x.rolls=Array.isArray(s.beforeStock.rolls)?[...s.beforeStock.rolls]:[];
+   }else if(x.k==='Tayyor'){
+     x.q=(Number(x.q)||0)+(Number(s.q)||0);
+     x.sqm=(Number(x.sqm)||0)+(Number(s.sqm)||0);
+   }else{
+     let returnedLength=(Number(s.sqm)||0)/(Number(x.w)||1);
+     x.rolls=Array.isArray(x.rolls)?x.rolls:[];
+     x.rolls.push(returnedLength);
+     x.q=x.rolls.length;
+     x.sqm=(Number(x.sqm)||0)+(Number(s.sqm)||0);
+   }
+ }
+
+ if(s.cid){
+   let c=d.customers.find(z=>z.id===s.cid);
+   if(c){
+     c.sales=(c.sales||[]).filter(v=>String(v)!==String(s.id));
+     if(s.initialPaymentId){
+       c.payments=(c.payments||[]).filter(v=>String(v.id)!==String(s.initialPaymentId));
+     }
+   }
+ }
+
+ s.status='cancelled';
+ s.cancelledAt=stamp();
+ log(`${s.n} ${s.size} sotuv bekor qilindi. Ombor va hisoblar qaytarildi.`);
+ localStorage.setItem(K,JSON.stringify(d));
+ closeM();
+ render();
+ alert("✓ Sotuv bekor qilindi. Gilam omborga qaytarildi.");
+}
+function debt(c){let t=d.sales.filter(s=>c.sales.includes(s.id)&&s.status==='active').reduce((a,s)=>a+s.total,0),p=c.payments.reduce((a,x)=>a+x.amount,0);return t-p}
+function customers(){let q=(search?.value||'').toLowerCase(),a=d.customers.filter(c=>(c.name+' '+c.surname+' '+c.phone+' '+c.phone2).toLowerCase().includes(q));document.getElementById('customers').innerHTML=a.length?a.map(c=>`<div class="row" onclick="cust(${c.id})"><span><b>${c.name} ${c.surname}</b><div class="muted">${c.phone}</div></span><b>${som(debt(c))}</b></div>`).join(''):`<div class="card muted">Mijoz yo‘q</div>`}
+function cust(id){let c=d.customers.find(x=>x.id===id);M(c.name+' '+c.surname,`<div class="card"><b>Umumiy qarz: ${som(debt(c))}</b><div class="muted">${c.place} · ${c.phone} · ${c.phone2}</div></div><div class="grid" style="margin-top:9px"><button class="secondary" onclick="editCust(${id})">✏️ Tahrirlash</button><button class="primary" onclick="payForm(${id})">+ To‘lov</button></div><h4>Xaridlar</h4>${d.sales.filter(s=>c.sales.includes(s.id)&&s.status==='active').map(s=>`<div class="row"><span>${s.n} · ${s.size}</span><b>${som(s.total)}</b></div>`).join('')}<h4>To‘lovlar</h4>${c.payments.map(p=>`<div class="row"><span>${p.date}</span><b>${som(p.amount)}</b></div>`).join('')}`)}
+function editCust(id){let c=d.customers.find(x=>x.id===id);M('Mijozni tahrirlash',`<input id="en" value="${c.name}"><br><br><input id="es" value="${c.surname}"><br><br><input id="ep" value="${c.place}"><br><br><input id="e1" value="${c.phone}"><br><br><input id="e2" value="${c.phone2}"><br><br><button class="primary" style="width:100%" onclick="saveCust(${id})">Saqlash</button>`)}
+function saveCust(id){let c=d.customers.find(x=>x.id===id);c.name=en.value;c.surname=es.value;c.place=ep.value;c.phone=e1.value;c.phone2=e2.value;log(`${c.name} mijoz ma’lumoti yangilandi`);save();closeM()}
+function payForm(id){let c=d.customers.find(x=>x.id===id),q=Math.max(0,debt(c));M('Nasiya to‘lovi',`<div class="card"><div class="muted">Hozirgi qarz</div><b style="font-size:22px">${som(q)}</b></div><div class="field"><label>To‘lov summasi</label><input id="pay" type="number" inputmode="numeric"></div><button class="primary" style="width:100%" onclick="addPay(${id})">Saqlash</button>`)}
+function addPay(id){let c=d.customers.find(x=>x.id===id),a=+pay.value,q=Math.max(0,debt(c));if(!a)return alert('To‘lov summasini kiriting');if(a>q)return alert('To‘lov qolgan qarzdan katta bo‘lishi mumkin emas');c.payments.unshift({id:Date.now(),date:day(),amount:a});log(`${c.name} nasiya to‘lovi ${som(a)} · qoldiq ${som(q-a)}`);save();closeM()}
+function factoryForm(){M('Zavodga to‘lov',`<div class="grid"><input id="fu" type="number" placeholder="USD"><input id="fs" type="number" placeholder="So‘m"></div><div class="field"><input id="fn" placeholder="Izoh"></div><button class="primary" style="width:100%" onclick="addFactory()">Saqlash</button>`)}
+function addFactory(){let u=+fu.value||0,s=+fs.value||0;if(!u&&!s)return;d.factory.unshift({date:day(),u,s,n:fn.value});log(`Zavod to‘lovi ${usd(u)} + ${som(s)}`);save();closeM()}
+function factoryRender(){let u=d.factory.reduce((a,x)=>a+x.u,0),s=d.factory.reduce((a,x)=>a+x.s,0);factoryTotal.innerHTML=`<b>Jami ${usd(u)} &nbsp; | &nbsp; ${som(s)}</b>`;factoryList.innerHTML=d.factory.map((x,i)=>`<div class="row"><span>${x.date} · ${x.n}</span><span><b>${usd(x.u)} + ${som(x.s)}</b><br><button class="secondary" onclick="editFactory(${i})">✏️ Tahrirlash</button> <button class="secondary" onclick="deleteFactory(${i})">🗑 O‘chirish</button></span></div>`).join('')}
+function deleteFactory(i){let x=d.factory[i];M("Zavod to‘lovini o‘chirish",`<div class="notice">${usd(x.u)} + ${som(x.s)} to‘lovni o‘chirasizmi?</div><div class="grid"><button class="secondary" onclick="closeM()">Yo‘q</button><button class="primary" onclick="confirmDeleteFactory(${i})">Ha, o‘chirish</button></div>`)}
+function confirmDeleteFactory(i){let x=d.factory[i];log(`Zavod to‘lovi o‘chirildi: ${usd(x.u)} + ${som(x.s)}`);d.factory.splice(i,1);save();closeM()}
+function editFactory(i){let x=d.factory[i];M('Zavod to‘lovini tahrirlash',`<div class="field"><label>Sana</label><input id="xfd" type="date" value="${x.date}"></div><div class="grid"><div class="field"><label>USD</label><input id="xfu" type="number" inputmode="decimal" value="${x.u}"></div><div class="field"><label>So‘m</label><input id="xfs" type="number" inputmode="numeric" value="${x.s}"></div></div><div class="field"><label>Izoh</label><input id="xfn" value="${x.n||''}"></div><button class="primary" style="width:100%" onclick="saveFactoryEdit(${i})">Saqlash</button>`)}
+function saveFactoryEdit(i){let x=d.factory[i];x.date=xfd.value;x.u=+xfu.value||0;x.s=+xfs.value||0;x.n=xfn.value;log('Zavod to‘lovi tahrirlandi');save();closeM()}
+function expenseForm(){M('Yangi chiqim',`<select id="et"><option>Ijara</option><option>Elektr</option><option>Ishchi</option><option>Transport</option><option>Reklama</option><option>Boshqa</option></select><div class="field"><input id="ea" type="number" placeholder="Summa"></div><div class="field"><input id="eno" placeholder="Izoh"></div><button class="primary" style="width:100%" onclick="addExpense()">Saqlash</button>`)}
+function addExpense(){let a=+ea.value;if(!a)return;d.expenses.unshift({date:day(),type:et.value,a,n:eno.value});log(`Chiqim ${et.value} ${som(a)}`);save();closeM()}
+function expenseRender(){expenseList.innerHTML=d.expenses.length?d.expenses.map((x,i)=>`<div class="row"><span><b>${x.type}</b><div class="muted">${x.date} · ${x.n}</div></span><span><b>${som(x.a)}</b><br><button class="secondary" onclick="editExpense(${i})">✏️ Tahrirlash</button> <button class="secondary" onclick="deleteExpense(${i})">🗑 O‘chirish</button></span></div>`).join(''):`<div class="card muted">Chiqim yo‘q</div>`}
+function deleteExpense(i){let x=d.expenses[i];M("Chiqimni o‘chirish",`<div class="notice"><b>${x.type} · ${som(x.a)}</b><br><br>Bu chiqimni o‘chirasizmi?</div><div class="grid"><button class="secondary" onclick="closeM()">Yo‘q</button><button class="primary" onclick="confirmDeleteExpense(${i})">Ha, o‘chirish</button></div>`)}
+function confirmDeleteExpense(i){let x=d.expenses[i];log(`${x.type} chiqimi o‘chirildi: ${som(x.a)}`);d.expenses.splice(i,1);save();closeM()}
+function editExpense(i){let x=d.expenses[i];M('Chiqimni tahrirlash',`<div class="field"><label>Sana</label><input id="xed" type="date" value="${x.date}"></div><div class="field"><label>Turi</label><select id="xet"><option ${x.type==='Ijara'?'selected':''}>Ijara</option><option ${x.type==='Elektr'?'selected':''}>Elektr</option><option ${x.type==='Ishchi'?'selected':''}>Ishchi</option><option ${x.type==='Transport'?'selected':''}>Transport</option><option ${x.type==='Reklama'?'selected':''}>Reklama</option><option ${x.type==='Boshqa'?'selected':''}>Boshqa</option></select></div><div class="field"><label>Summa</label><input id="xea" type="number" inputmode="numeric" value="${x.a}"></div><div class="field"><label>Izoh</label><input id="xen" value="${x.n||''}"></div><button class="primary" style="width:100%" onclick="saveExpenseEdit(${i})">Saqlash</button>`)}
+function saveExpenseEdit(i){let x=d.expenses[i];let a=+xea.value;if(!a)return alert('Summani kiriting');x.date=xed.value;x.type=xet.value;x.a=a;x.n=xen.value;log(`${x.type} chiqimi tahrirlandi`);save();closeM()}
+let reportPeriod='month';
+function localDateStr(dt){let y=dt.getFullYear(),m=String(dt.getMonth()+1).padStart(2,'0'),dd=String(dt.getDate()).padStart(2,'0');return `${y}-${m}-${dd}`}
+function reportRange(){
+ let now=new Date(),from=new Date(now.getFullYear(),now.getMonth(),now.getDate()),to=new Date(from);
+ if(reportPeriod==='today'){}
+ else if(reportPeriod==='yesterday'){from.setDate(from.getDate()-1);to=new Date(from)}
+ else if(reportPeriod==='week'){let dow=(from.getDay()+6)%7;from.setDate(from.getDate()-dow)}
+ else if(reportPeriod==='month'){from=new Date(now.getFullYear(),now.getMonth(),1);to=new Date(now.getFullYear(),now.getMonth()+1,0)}
+ else if(reportPeriod==='all')return {from:'0000-01-01',to:'9999-12-31',label:'Barcha vaqt'};
+ else if(reportPeriod==='custom'){let f=rfFrom.value,t=rfTo.value;if(!f||!t)return null;return {from:f,to:t,label:`${f} — ${t}`}}
+ return {from:localDateStr(from),to:localDateStr(to),label:`${localDateStr(from)} — ${localDateStr(to)}`}
+}
+function setReportPeriod(p){reportPeriod=p;['Today','Yesterday','Week','Month','All'].forEach(x=>{let e=document.getElementById('rf'+x);if(e)e.className='secondary'});let map={today:'Today',yesterday:'Yesterday',week:'Week',month:'Month',all:'All'};let b=document.getElementById('rf'+map[p]);if(b)b.className='primary';report()}
+function setReportCustom(){if(rfFrom.value&&rfTo.value){reportPeriod='custom';['Today','Yesterday','Week','Month','All'].forEach(x=>{let e=document.getElementById('rf'+x);if(e)e.className='secondary'});report()}}
+function inRange(date,r){return date>=r.from&&date<=r.to}
+function report(){
+ let r=reportRange();if(!r)return;
+ if(document.getElementById('reportPeriodLabel'))reportPeriodLabel.textContent=r.label;
+ let a=d.sales.filter(s=>s.status==='active'&&inRange(s.date,r));
+ let tot=a.reduce((x,s)=>x+(+s.total||0),0);
+ let cash=a.filter(s=>s.type==='Naqd').reduce((x,s)=>x+(+s.total||0),0);
+ let cr=a.filter(s=>s.type==='Nasiya').reduce((x,s)=>x+(+s.total||0),0);
+ let repayments=d.customers.flatMap(c=>c.payments||[]).filter(p=>inRange(p.date,r)).reduce((x,p)=>x+(+p.amount||0),0);
+ let ex=d.expenses.filter(e=>inRange(e.date,r)).reduce((x,e)=>x+(+e.a||0),0);
+ let fUSD=d.factory.filter(x=>inRange(x.date,r)).reduce((a,x)=>a+(+x.u||0),0);
+ let fUZS=d.factory.filter(x=>inRange(x.date,r)).reduce((a,x)=>a+(+x.s||0),0);
+ let deb=d.customers.reduce((x,c)=>x+Math.max(0,debt(c)),0);
+ let sqm=d.stock.reduce((x,z)=>x+(+z.sqm||0),0);
+ let val=d.stock.reduce((x,z)=>x+(+z.sqm||0)*(+z.c||0),0);
+ reportList.innerHTML=[
+  ['Jami sotuv',som(tot)],
+  ['Naqd sotuv',som(cash)],
+  ['Nasiya sotuv',som(cr)],
+  ['Nasiya qaytimi',som(repayments)],
+  ['Jami pul kirimi',som(cash+repayments)],
+  ['Chiqim',som(ex)],
+  ['Davr bo‘yicha farq',som(cash+repayments-ex)],
+  ['Zavodga to‘lov',usd(fUSD)+' + '+som(fUZS)],
+  ['Hozirgi jami nasiya qarzi',som(deb)],
+  ['Hozir omborda',sqm.toFixed(2)+' m²'],
+  ['Hozirgi ombor qiymati',usd(val)]
+ ].map(x=>`<div class="row"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('')
+}
+function home(){
+ let a=d.sales.filter(s=>s.status==='active'&&s.date===day()),
+ cash=a.filter(s=>s.type==='Naqd').reduce((x,s)=>x+s.total,0),
+ creditSales=a.filter(s=>s.type==='Nasiya').reduce((x,s)=>x+s.total,0),
+ remainingDebt=d.customers.reduce((x,c)=>x+Math.max(0,debt(c)),0),
+ p=d.customers.flatMap(c=>c.payments).filter(x=>x.date===day()).reduce((a,x)=>a+x.amount,0),
+ e=d.expenses.filter(x=>x.date===day()).reduce((a,x)=>a+x.a,0);
+ hs.textContent=som(cash+creditSales);hc.textContent=som(cash);hn.textContent=som(remainingDebt);hp.textContent=som(p);he.textContent=som(e);
+
+ let currentSqm=d.stock.reduce((a,x)=>a+(+x.sqm||0),0);
+ let currentQty=d.stock.reduce((a,x)=>a+(+x.q||0),0);
+ let totalInSqm=d.stock.reduce((a,x)=>a+(x.inSqm!=null?+x.inSqm:(+x.sqm||0)+d.sales.filter(v=>v.stock===x.id&&v.status==='active').reduce((z,v)=>z+(+v.sqm||0),0)),0);
+ let totalInQty=d.stock.reduce((a,x)=>a+(x.inQty!=null?+x.inQty:(+x.q||0)+d.sales.filter(v=>v.stock===x.id&&v.status==='active'&&x.k==='Tayyor').reduce((z,v)=>z+(+v.q||0),0)),0);
+ let goodsUSD=d.stock.reduce((a,x)=>{let m=x.inSqm!=null?+x.inSqm:(+x.sqm||0)+d.sales.filter(v=>v.stock===x.id&&v.status==='active').reduce((z,v)=>z+(+v.sqm||0),0);return a+m*(+x.c||0)},0);
+ let paidUSD=d.factory.reduce((a,x)=>a+(+x.u||0),0);
+ let paidUZS=d.factory.reduce((a,x)=>a+(+x.s||0),0);
+ hiSqm.textContent=totalInSqm.toFixed(2)+' m²';
+ hiQty.textContent=totalInQty.toLocaleString('uz-UZ');
+ hStockSqm.textContent=currentSqm.toFixed(2)+' m²';
+ hStockQty.textContent=currentQty.toLocaleString('uz-UZ');
+ hFactoryGoods.textContent=usd(goodsUSD);
+ hFactoryPaid.textContent=usd(paidUSD)+' + '+som(paidUZS);
+ hFactoryDebt.textContent=usd(Math.max(0,goodsUSD-paidUSD));
+}
+function render(){home();stockRender();salesRender();customers();factoryRender();expenseRender();report();auditList.innerHTML=d.audit.map(x=>`<div class="row"><span>${x.x}</span><span class="muted">${x.t}</span></div>`).join('')||'<div class="card muted">Tarix yo‘q</div>'}render();
+
+setTimeout(cloudInit,150);
+</script></body></html>
